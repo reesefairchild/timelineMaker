@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Timeline Maker</title>
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
+  <style>
+    body { font-family: Arial; margin: 20px; padding-bottom: 50px; }
+
+    #timeline {
+      margin-top: 30px;
+      border: 1px solid #ccc;
+      padding: 20px;
+      width: 1000px;
+      background: white;
+      position: relative;
+    }
+
+    .event {
+      position: relative;
+      margin: 10px 0;
+      padding-left: 0px;
+    }
+
+    .event-line {
+      position: relative;
+      left: 0;
+      height: 4px;
+      top: 50%;
+      padding-left: 50px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="alert alert-info" style="font-size: xx-large; font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;" role="alert">
+    Timeline Pro
+  </div>
+  <div class="alert alert-warning alert-dismissible" role="alert"
+      style="font-size: medium; font-family: 'Courier New', Courier, monospace;">
+    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+      <span aria-hidden="true">&times;</span>
+    </button>
+    Create timelines with events defined by name, start month, end month, and color.
+    Download your timeline as a PNG image or save/load timelines as JSON files.<br>
+    <p style="font-size: small; font-family: 'Courier New', Courier, monospace;">Get started below!</p>
+  </div>
+  <br>
+
+
+  <form id="eventForm">
+    <input type="text" id="name" placeholder="Event name" required>
+    <input type="month" id="start" required>
+    <input type="month" id="end" required>
+    <input type="color" id="color">
+    <button type="submit">Add Event</button>
+  </form>
+
+  <div id="timeline"></div>
+  <br>
+  <button id="saveBtn">Download PNG</button><br>
+  <button id="saveJsonBtn">Save Timeline</button>
+  <div style="display:flex; align-items:center;">
+    <span style="margin-right:8px;">Load Timeline:</span>
+    <input type="file" id="loadJsonInput" accept=".json">
+  </div>
+
+  <footer class="navbar navbar-default navbar-fixed-bottom">
+  <div class="container">
+    <p class="navbar-text">
+     2025 Timeline Pro - Created by Reese Fairchild<br>
+     For best results, use on desktop browsers.
+    </p>
+  </div>
+  </footer>
+
+
+
+  <script>
+    const events = [];
+
+    document.getElementById("eventForm").addEventListener("submit", e => {
+      e.preventDefault()
+
+      const name = document.getElementById("name").value;
+      const start = document.getElementById("start").value;
+      const end = document.getElementById("end").value;
+      const color = document.getElementById("color").value;
+
+      for (i = 0;i < events.length; i++){
+        if (events[i].name == name) {
+          events.splice(i,1)
+        }
+      }
+
+      events.push({ name, start, end, color });
+      renderTimeline();
+    });
+
+    function monthIndex(date) {
+      const [y, m] = date.split("-").map(Number);
+      return (y * 12) + m;
+    }
+
+    function renderTimeline() {
+      const timeline = document.getElementById("timeline");
+      timeline.innerHTML = "";
+
+      if (events.length === 0) return;
+
+      const min = Math.min(...events.map(e => monthIndex(e.start)));
+      const max = Math.max(...events.map(e => monthIndex(e.end)));
+
+      const scale = 5; // pixels per month
+
+      events.forEach((e, index) => {
+        const startX = (monthIndex(e.start) - min) * scale;
+        const width = (monthIndex(e.end) - monthIndex(e.start)) * scale;
+
+        const div = document.createElement("div");
+        div.className = "event";
+        div.innerHTML = `
+          <b>${e.name}</b><br>
+          ${e.start} → ${e.end}
+          <br>
+          <button class="btn btn-xs btn-danger" onclick="deleteEvent(${index})">
+            Delete
+          </button>
+        `;
+        div.style.color=e.color;
+
+        const line = document.createElement("div");
+        line.className = "event-line";
+        line.style.left = startX + "px";
+        line.style.width = width + "px";
+        line.style.color = e.color;
+        line.style.background = e.color;
+
+        div.appendChild(line);
+        timeline.appendChild(div);
+      });
+    }
+
+    document.getElementById("saveBtn").addEventListener("click", () => {
+      const buttons = document.querySelectorAll(".btn-danger");
+      buttons.forEach(b => b.style.display = "none");
+
+      html2canvas(document.querySelector("#timeline")).then(canvas => {
+        const link = document.createElement("a");
+        link.download = "timeline.png";
+        link.href = canvas.toDataURL();
+        link.click();
+
+        buttons.forEach(b => b.style.display = "inline-block");
+      });
+    });
+
+    function deleteEvent(index) {
+      events.splice(index, 1);
+      renderTimeline();
+    };
+
+    document.getElementById("saveJsonBtn").addEventListener("click", () => {
+      const data = JSON.stringify(events, null, 2);
+
+      const blob = new Blob([data], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "timeline.json";
+      a.click();
+
+      URL.revokeObjectURL(url);
+    });
+
+    document.getElementById("loadJsonInput").addEventListener("change", e => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const loadedEvents = JSON.parse(reader.result);
+
+          if (!Array.isArray(loadedEvents)) {
+            alert("Invalid timeline file");
+            return;
+          }
+
+          events.length = 0;    
+          loadedEvents.forEach(e => events.push(e));
+
+          renderTimeline();
+        } catch {
+          alert("Failed to load timeline");
+        }
+      };
+
+      reader.readAsText(file);
+    });
+    
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
+</body>
+</html>
