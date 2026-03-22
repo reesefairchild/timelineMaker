@@ -4,18 +4,17 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Timeline Studio</title>
-
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Work+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⏳</text></svg>">
-
   <link rel="stylesheet" href="styles.css">
 </head>
-
 <body>
+
 <div class="container-main">
   <div class="header">
     <h1>timeline studio</h1>
-    <p>Visualize events across time with precision and clarity</p>
+    <p>Create timelines with events defined by name, start month, end month, and color.
+    Download your timeline as a PNG image or save/load timelines as JSON files.</p>
   </div>
 
   <div class="form-section">
@@ -60,33 +59,26 @@
 </div>
 
 <footer>
-  <p><strong>Timeline Studio</strong></p>
+  <p><strong>For best results, use on desktop browsers.</strong></p>
 </footer>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.js"></script>
 <script>
 const events = [];
-const nameInput = document.getElementById("name");
-const startInput = document.getElementById("start");
-const endInput = document.getElementById("end");
-const colorInput = document.getElementById("color");
-const timelineEl = document.getElementById("timeline");
 
 document.getElementById("eventForm").addEventListener("submit", e => {
   e.preventDefault();
-  const name = nameInput.value.trim();
-  const start = startInput.value;
-  const end = endInput.value;
-  const color = colorInput.value;
-
+  const name = document.getElementById("name").value.trim();
+  const start = document.getElementById("start").value;
+  const end = document.getElementById("end").value;
+  const color = document.getElementById("color").value;
   if (!name || !start || !end) return;
-
   const idx = events.findIndex(ev => ev.name === name);
   if (idx !== -1) events.splice(idx, 1);
   events.push({ name, start, end, color });
   renderTimeline();
   e.target.reset();
-  colorInput.value = "#d97706";
+  document.getElementById("color").value = "#d97706";
 });
 
 function monthIndex(date) {
@@ -95,6 +87,7 @@ function monthIndex(date) {
 }
 
 function renderTimeline() {
+  const timelineEl = document.getElementById("timeline");
   timelineEl.innerHTML = "";
   if (!events.length) {
     timelineEl.innerHTML = '<div class="timeline-empty">No events yet.</div>';
@@ -119,7 +112,7 @@ function renderTimeline() {
         <span>${e.start} → ${e.end}</span>
       </div>
       <div class="event-bar">
-        <div class="event-bar-fill" style="position:absolute; left:${left}%; width:${width}%; background:${e.color}; height:100%; border-radius: 4px;"></div>
+        <div class="event-bar-fill" style="position:absolute; left:${left}%; width:${width}%; background:${e.color}; height:100%;"></div>
       </div>
       <button class="btn-danger">Delete</button>
     `;
@@ -144,33 +137,43 @@ document.getElementById("saveBtn").addEventListener("click", async () => {
   btn.textContent = "Exporting...";
 
   try {
-    const node = document.querySelector(".timeline-section");
-    const buttons = node.querySelectorAll(".btn-danger");
+    const section = document.querySelector(".timeline-section");
+    const header = section.querySelector(".timeline-header");
+    const controls = section.querySelector(".controls");
+    const buttons = section.querySelectorAll(".btn-danger");
+    
+    header.style.display = "none";
+    controls.style.display = "none";
     buttons.forEach(b => b.style.display = "none");
 
-    const canvas = await html2canvas(node, {
-      backgroundColor: "#fafbf8",
-      scale: 2,
+    const canvas = await html2canvas(section, {
+      allowTaint: true,
       useCORS: true,
-      allowTaint: true
+      backgroundColor: "#ffffff",
+      scale: 2,
+      logging: false,
+      windowHeight: section.scrollHeight
     });
 
+    header.style.display = "";
+    controls.style.display = "grid";
+    buttons.forEach(b => b.style.display = "inline-block");
+
     const link = document.createElement("a");
+    link.href = canvas.toDataURL("image/png");
     link.download = "timeline.png";
-    link.href = canvas.toDataURL();
     link.click();
 
-    buttons.forEach(b => b.style.display = "inline-block");
   } catch (err) {
-    alert("Export failed: " + err.message);
     console.error(err);
+    alert("Export failed: " + err.message);
   } finally {
     btn.disabled = false;
     btn.textContent = "Download PNG";
   }
 });
 
-document.getElementById("saveJsonBtn").onclick = () => {
+document.getElementById("saveJsonBtn").addEventListener("click", () => {
   if (!events.length) {
     alert("No events to save");
     return;
@@ -180,13 +183,13 @@ document.getElementById("saveJsonBtn").onclick = () => {
   a.href = URL.createObjectURL(blob);
   a.download = "timeline.json";
   a.click();
-};
+});
 
-document.getElementById("loadJsonBtn").onclick = () => {
+document.getElementById("loadJsonBtn").addEventListener("click", () => {
   document.getElementById("loadJsonInput").click();
-};
+});
 
-document.getElementById("loadJsonInput").onchange = e => {
+document.getElementById("loadJsonInput").addEventListener("change", e => {
   const file = e.target.files[0];
   if (!file) return;
   const reader = new FileReader();
@@ -197,13 +200,13 @@ document.getElementById("loadJsonInput").onchange = e => {
       events.length = 0;
       data.forEach(ev => events.push(ev));
       renderTimeline();
-      alert("Timeline loaded successfully");
+      alert("Loaded successfully");
     } catch {
-      alert("Failed to load timeline file");
+      alert("Failed to load file");
     }
   };
   reader.readAsText(file);
-};
+});
 </script>
 
 </body>
