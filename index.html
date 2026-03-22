@@ -2,214 +2,209 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Timeline Maker</title>
-  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
-  <style>
-    body { font-family: Arial; margin: 20px; padding-bottom: 50px; }
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Timeline Studio</title>
 
-    #timeline {
-      margin-top: 30px;
-      border: 1px solid #ccc;
-      padding: 20px;
-      width: 1000px;
-      background: white;
-      position: relative;
-    }
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Work+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⏳</text></svg>">
 
-    .event {
-      position: relative;
-      margin: 10px 0;
-      padding-left: 0px;
-    }
-
-    .event-line {
-      position: relative;
-      left: 0;
-      height: 4px;
-      top: 50%;
-      padding-left: 50px;
-    }
-  </style>
-    <link rel="icon" href="data:image/svg+xml,
-    <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'>
-    <text y='.9em' font-size='90'>⏳</text>
-    </svg>">
+  <link rel="stylesheet" href="styles.css">
 </head>
+
 <body>
-
-  <div class="alert alert-info" style="font-size: xx-large; font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;" role="alert">
-    Timeline Pro
-  </div>
-  <div class="alert alert-warning alert-dismissible" role="alert"
-      style="font-size: medium; font-family: 'Courier New', Courier, monospace;">
-    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-      <span aria-hidden="true">&times;</span>
-    </button>
-    Create timelines with events defined by name, start month, end month, and color.
-    Download your timeline as a PNG image or save/load timelines as JSON files.<br>
-    <p style="font-size: small; font-family: 'Courier New', Courier, monospace;">Get started below!</p>
-  </div>
-  <br>
-
-
-  <form id="eventForm">
-    <input type="text" id="name" placeholder="Event name" required>
-    <input type="month" id="start" required>
-    <input type="month" id="end" required>
-    <input type="color" id="color">
-    <button type="submit">Add Event</button>
-  </form>
-
-  <div id="timeline"></div>
-  <br>
-  <div class="btn-group" style="margin-top: 20px;">
-    <button id="saveBtn" class="btn btn-success">Download PNG</button>
-    <button id="saveJsonBtn" class="btn btn-info">Save Timeline</button>
-  </div>
-  <div style="display:flex; align-items:center; margin-top:10px; gap:5px;">
-    <button id="loadJsonBtn" class="btn btn-primary">Load Timeline from JSON</button>
-    <input type="file" id="loadJsonInput" accept=".json" style="display:none;">
+<div class="container-main">
+  <div class="header">
+    <h1>timeline studio</h1>
+    <p>Visualize events across time with precision and clarity</p>
   </div>
 
-  <footer class="navbar navbar-default navbar-fixed-bottom">
-  <div class="container">
-    <p class="navbar-text">
-     2025 Timeline Pro - Created by Reese Fairchild<br>
-     For best results, use on desktop browsers.
-    </p>
+  <div class="form-section">
+    <h2>➕ Add Event</h2>
+    <form id="eventForm">
+      <div class="form-grid">
+        <div class="form-group">
+          <label for="name">Event Name</label>
+          <input type="text" id="name" autocomplete="off" required>
+        </div>
+        <div class="form-group">
+          <label for="start">Start</label>
+          <input type="month" id="start" autocomplete="off" required>
+        </div>
+        <div class="form-group">
+          <label for="end">End</label>
+          <input type="month" id="end" autocomplete="off" required>
+        </div>
+        <div class="form-group">
+          <label for="color">Color</label>
+          <input type="color" id="color" value="#d97706" autocomplete="off">
+        </div>
+      </div>
+      <button type="submit" class="btn-primary">Add Event</button>
+    </form>
   </div>
-  </footer>
 
+  <div class="timeline-section">
+    <div class="timeline-header">
+      <h2>📊 Your Timeline</h2>
+    </div>
+    <div id="timeline">
+      <div class="timeline-empty">No events yet.</div>
+    </div>
+    <div class="controls">
+      <button id="saveBtn" class="btn-success">Download PNG</button>
+      <button id="saveJsonBtn" class="btn-info">Export JSON</button>
+      <button id="loadJsonBtn" class="btn-info">Import JSON</button>
+      <input type="file" id="loadJsonInput" accept=".json">
+    </div>
+  </div>
+</div>
 
+<footer>
+  <p><strong>Timeline Studio</strong></p>
+</footer>
 
-  <script>
-    const events = [];
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script>
+const events = [];
+const nameInput = document.getElementById("name");
+const startInput = document.getElementById("start");
+const endInput = document.getElementById("end");
+const colorInput = document.getElementById("color");
+const timelineEl = document.getElementById("timeline");
 
-    document.getElementById("eventForm").addEventListener("submit", e => {
-      e.preventDefault()
+document.getElementById("eventForm").addEventListener("submit", e => {
+  e.preventDefault();
+  const name = nameInput.value.trim();
+  const start = startInput.value;
+  const end = endInput.value;
+  const color = colorInput.value;
 
-      const name = document.getElementById("name").value;
-      const start = document.getElementById("start").value;
-      const end = document.getElementById("end").value;
-      const color = document.getElementById("color").value;
+  if (!name || !start || !end) return;
 
-      for (i = 0;i < events.length; i++){
-        if (events[i].name == name) {
-          events.splice(i,1)
-        }
-      }
+  const idx = events.findIndex(ev => ev.name === name);
+  if (idx !== -1) events.splice(idx, 1);
+  events.push({ name, start, end, color });
+  renderTimeline();
+  e.target.reset();
+  colorInput.value = "#d97706";
+});
 
-      events.push({ name, start, end, color });
-      renderTimeline();
-    });
+function monthIndex(date) {
+  const [y, m] = date.split("-").map(Number);
+  return y * 12 + m;
+}
 
-    function monthIndex(date) {
-      const [y, m] = date.split("-").map(Number);
-      return (y * 12) + m;
-    }
+function renderTimeline() {
+  timelineEl.innerHTML = "";
+  if (!events.length) {
+    timelineEl.innerHTML = '<div class="timeline-empty">No events yet.</div>';
+    return;
+  }
 
-    function renderTimeline() {
-      const timeline = document.getElementById("timeline");
-      timeline.innerHTML = "";
+  const min = Math.min(...events.map(e => monthIndex(e.start)));
+  const max = Math.max(...events.map(e => monthIndex(e.end)));
+  const range = max - min || 1;
 
-      if (events.length === 0) return;
+  events.forEach((e, i) => {
+    const startIdx = monthIndex(e.start) - min;
+    const endIdx = monthIndex(e.end) - min;
+    const width = ((endIdx - startIdx) / range) * 100;
+    const left = (startIdx / range) * 100;
 
-      const min = Math.min(...events.map(e => monthIndex(e.start)));
-      const max = Math.max(...events.map(e => monthIndex(e.end)));
+    const div = document.createElement("div");
+    div.className = "event";
+    div.innerHTML = `
+      <div class="event-label">
+        <span>${e.name}</span>
+        <span>${e.start} → ${e.end}</span>
+      </div>
+      <div class="event-bar">
+        <div class="event-bar-fill" style="position:absolute; left:${left}%; width:${width}%; background:${e.color}; height:100%; border-radius: 4px;"></div>
+      </div>
+      <button class="btn-danger">Delete</button>
+    `;
 
-      const scale = 5; // pixels per month
-
-      events.forEach((e, index) => {
-        const startX = (monthIndex(e.start) - min) * scale;
-        const width = (monthIndex(e.end) - monthIndex(e.start)) * scale;
-
-        const div = document.createElement("div");
-        div.className = "event";
-        div.innerHTML = `
-          <b>${e.name}</b><br>
-          ${e.start} → ${e.end}
-          <br>
-          <button class="btn btn-xs btn-danger" onclick="deleteEvent(${index})">
-            Delete
-          </button>
-        `;
-        div.style.color=e.color;
-
-        const line = document.createElement("div");
-        line.className = "event-line";
-        line.style.left = startX + "px";
-        line.style.width = width + "px";
-        line.style.color = e.color;
-        line.style.background = e.color;
-
-        div.appendChild(line);
-        timeline.appendChild(div);
-      });
-    }
-
-    document.getElementById("saveBtn").addEventListener("click", () => {
-      const buttons = document.querySelectorAll(".btn-danger");
-      buttons.forEach(b => b.style.display = "none");
-
-      html2canvas(document.querySelector("#timeline")).then(canvas => {
-        const link = document.createElement("a");
-        link.download = "timeline.png";
-        link.href = canvas.toDataURL();
-        link.click();
-
-        buttons.forEach(b => b.style.display = "inline-block");
-      });
-    });
-
-    function deleteEvent(index) {
-      events.splice(index, 1);
+    div.querySelector("button").onclick = () => {
+      events.splice(i, 1);
       renderTimeline();
     };
 
-    document.getElementById("saveJsonBtn").addEventListener("click", () => {
-      const data = JSON.stringify(events, null, 2);
+    timelineEl.appendChild(div);
+  });
+}
 
-      const blob = new Blob([data], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
+document.getElementById("saveBtn").addEventListener("click", async () => {
+  if (!events.length) {
+    alert("Nothing to export");
+    return;
+  }
 
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "timeline.json";
-      a.click();
+  const btn = document.getElementById("saveBtn");
+  btn.disabled = true;
+  btn.textContent = "Exporting...";
 
-      URL.revokeObjectURL(url);
+  try {
+    const node = document.querySelector(".timeline-section");
+    const buttons = node.querySelectorAll(".btn-danger");
+    buttons.forEach(b => b.style.display = "none");
+
+    const canvas = await html2canvas(node, {
+      backgroundColor: "#fafbf8",
+      scale: 2,
+      useCORS: true,
+      allowTaint: true
     });
 
-    loadJsonBtn.addEventListener('click', () => loadJsonInput.click());
-    document.getElementById("loadJsonInput").addEventListener("change", e => {
-      const file = e.target.files[0];
-      if (!file) return;
+    const link = document.createElement("a");
+    link.download = "timeline.png";
+    link.href = canvas.toDataURL();
+    link.click();
 
-      const reader = new FileReader();
-      reader.onload = () => {
-        try {
-          const loadedEvents = JSON.parse(reader.result);
+    buttons.forEach(b => b.style.display = "inline-block");
+  } catch (err) {
+    alert("Export failed: " + err.message);
+    console.error(err);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Download PNG";
+  }
+});
 
-          if (!Array.isArray(loadedEvents)) {
-            alert("Invalid timeline file");
-            return;
-          }
+document.getElementById("saveJsonBtn").onclick = () => {
+  if (!events.length) {
+    alert("No events to save");
+    return;
+  }
+  const blob = new Blob([JSON.stringify(events, null, 2)], { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "timeline.json";
+  a.click();
+};
 
-          events.length = 0;    
-          loadedEvents.forEach(e => events.push(e));
+document.getElementById("loadJsonBtn").onclick = () => {
+  document.getElementById("loadJsonInput").click();
+};
 
-          renderTimeline();
-        } catch {
-          alert("Failed to load timeline");
-        }
-      };
+document.getElementById("loadJsonInput").onchange = e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const data = JSON.parse(reader.result);
+      if (!Array.isArray(data)) throw new Error("Invalid format");
+      events.length = 0;
+      data.forEach(ev => events.push(ev));
+      renderTimeline();
+      alert("Timeline loaded successfully");
+    } catch {
+      alert("Failed to load timeline file");
+    }
+  };
+  reader.readAsText(file);
+};
+</script>
 
-      reader.readAsText(file);
-    });
-    
-  </script>
-  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
-  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
-  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
 </body>
 </html>
