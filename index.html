@@ -62,7 +62,6 @@
   <p><strong>For best results, use on desktop browsers.</strong></p>
 </footer>
 
-<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.js"></script>
 <script>
 const events = [];
 
@@ -126,7 +125,8 @@ function renderTimeline() {
   });
 }
 
-document.getElementById("saveBtn").addEventListener("click", async () => {
+// Simple canvas-based export
+document.getElementById("saveBtn").addEventListener("click", () => {
   if (!events.length) {
     alert("Nothing to export");
     return;
@@ -136,41 +136,55 @@ document.getElementById("saveBtn").addEventListener("click", async () => {
   btn.disabled = true;
   btn.textContent = "Exporting...";
 
-  try {
-    const section = document.querySelector(".timeline-section");
-    const header = section.querySelector(".timeline-header");
-    const controls = section.querySelector(".controls");
-    const buttons = section.querySelectorAll(".btn-danger");
-    
-    header.style.display = "none";
-    controls.style.display = "none";
-    buttons.forEach(b => b.style.display = "none");
+  const canvas = document.createElement("canvas");
+  canvas.width = 1000;
+  canvas.height = 150 + events.length * 70;
 
-    const canvas = await html2canvas(section, {
-      allowTaint: true,
-      useCORS: true,
-      backgroundColor: "#ffffff",
-      scale: 2,
-      logging: false,
-      windowHeight: section.scrollHeight
-    });
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    header.style.display = "";
-    controls.style.display = "grid";
-    buttons.forEach(b => b.style.display = "inline-block");
+  // Title
+  ctx.fillStyle = "#000000";
+  ctx.font = "24px Arial";
+  ctx.fillText("Timeline", 20, 40);
 
-    const link = document.createElement("a");
-    link.href = canvas.toDataURL("image/png");
-    link.download = "timeline.png";
-    link.click();
+  // Calculate date range
+  const min = Math.min(...events.map(e => monthIndex(e.start)));
+  const max = Math.max(...events.map(e => monthIndex(e.end)));
+  const range = max - min || 1;
 
-  } catch (err) {
-    console.error(err);
-    alert("Export failed: " + err.message);
-  } finally {
-    btn.disabled = false;
-    btn.textContent = "Download PNG";
-  }
+  // Draw events
+  events.forEach((e, i) => {
+    const startIdx = monthIndex(e.start) - min;
+    const endIdx = monthIndex(e.end) - min;
+    const barWidth = ((endIdx - startIdx) / range) * 800;
+    const barLeft = (startIdx / range) * 800 + 120;
+    const barTop = 90 + i * 70;
+
+    // Event name
+    ctx.fillStyle = "#000000";
+    ctx.font = "bold 14px Arial";
+    ctx.fillText(e.name, 20, barTop - 10);
+
+    // Date range
+    ctx.font = "12px Arial";
+    ctx.fillStyle = "#666666";
+    ctx.fillText(`${e.start} → ${e.end}`, 20, barTop + 15);
+
+    // Bar
+    ctx.fillStyle = e.color;
+    ctx.fillRect(barLeft, barTop, Math.max(barWidth, 5), 30);
+  });
+
+  // Download
+  const link = document.createElement("a");
+  link.href = canvas.toDataURL("image/png");
+  link.download = "timeline.png";
+  link.click();
+
+  btn.disabled = false;
+  btn.textContent = "Download PNG";
 });
 
 document.getElementById("saveJsonBtn").addEventListener("click", () => {
